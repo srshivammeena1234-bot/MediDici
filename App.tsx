@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Home from './components/Home';
 import OrderMedicine from './components/OrderMedicine';
@@ -7,12 +7,42 @@ import ConsultDoctor from './components/ConsultDoctor';
 import NearbyServices from './components/NearbyServices';
 import HealthTools from './components/HealthTools';
 import SymptomChecker from './components/SymptomChecker';
+import Auth from './components/Auth';
 import { StethoscopeIcon, PillIcon, MapPinIcon, HeartPulseIcon, MessageSquareIcon, HomeIcon } from './components/icons/Icons';
+import { supabase } from './services/supabaseClient';
+import { Session } from '@supabase/supabase-js';
 
-export type View = 'home' | 'order' | 'consult' | 'nearby' | 'tools' | 'symptom-checker';
+export type View = 'home' | 'order' | 'consult' | 'nearby' | 'tools' | 'symptom-checker' | 'auth';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('home');
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (_event === 'SIGNED_IN') {
+        setCurrentView('home');
+      }
+      if (_event === 'SIGNED_OUT') {
+        setCurrentView('home');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
 
   const renderView = () => {
     switch (currentView) {
@@ -26,15 +56,27 @@ const App: React.FC = () => {
         return <HealthTools />;
       case 'symptom-checker':
         return <SymptomChecker />;
+      case 'auth':
+        return <Auth />;
       case 'home':
       default:
         return <Home setActiveView={setCurrentView} />;
     }
   };
 
+  if (loading) {
+      return (
+          <div className="flex items-center justify-center min-h-screen bg-brand-background">
+              <div className="text-brand-blue animate-pulse">
+                  <HeartPulseIcon />
+              </div>
+          </div>
+      )
+  }
+
   return (
     <div className="bg-brand-background min-h-screen font-sans text-gray-800 flex flex-col">
-      <Header />
+      <Header session={session} setCurrentView={setCurrentView} />
       <main className="flex-grow container mx-auto p-4 md:p-6">
         {renderView()}
       </main>

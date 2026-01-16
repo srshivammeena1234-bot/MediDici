@@ -1,15 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PillIcon, UploadIcon, VerifiedIcon } from './icons/Icons';
 import { Medicine } from '../types';
 import { getMedicineSubstitutes } from '../services/geminiService';
-
-const mockMedicines: Medicine[] = [
-  { id: '1', name: 'Paracetamol 500mg', price: 20, salt: 'Paracetamol', isAvailable: true },
-  { id: '2', name: 'Aspirin 75mg', price: 15, salt: 'Aspirin', isAvailable: true },
-  { id: '3', name: 'Cetirizine 10mg', price: 35, salt: 'Cetirizine', isAvailable: false },
-  { id: '4', name: 'Amoxicillin 250mg', price: 80, salt: 'Amoxicillin', isAvailable: true },
-];
+import { supabase } from '../services/supabaseClient';
 
 interface Substitute {
     name: string;
@@ -20,22 +14,47 @@ interface Substitute {
 
 const OrderMedicine: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Medicine[]>(mockMedicines);
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [searchResults, setSearchResults] = useState<Medicine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFindingSubstitutes, setIsFindingSubstitutes] = useState<string | null>(null);
   const [substitutes, setSubstitutes] = useState<Substitute[]>([]);
   const [error, setError] = useState<string>('');
 
+  useEffect(() => {
+    const fetchMedicines = async () => {
+      setLoading(true);
+      setFetchError(null);
+      
+      const { data, error } = await supabase.from('medicines').select('*');
+
+      if (error) {
+        setFetchError('Could not fetch medicines. Please ensure you have created a "medicines" table in Supabase and provided the correct Anon Key in services/supabaseClient.ts.');
+        console.error(error);
+        setMedicines([]);
+        setSearchResults([]);
+      } else if (data) {
+        setMedicines(data);
+        setSearchResults(data);
+      }
+      setLoading(false);
+    };
+
+    fetchMedicines();
+  }, []);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
     if (query) {
-      const filtered = mockMedicines.filter(med =>
+      const filtered = medicines.filter(med =>
         med.name.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
     } else {
-      setSearchResults(mockMedicines);
+      setSearchResults(medicines);
     }
   };
 
@@ -98,44 +117,51 @@ const OrderMedicine: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {searchResults.map(med => (
-          <div key={med.id} className="bg-white p-4 rounded-xl shadow-md border transition-shadow hover:shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-bold text-lg">{med.name}</p>
-                <p className="text-sm text-gray-500">Contains: {med.salt}</p>
-                <p className="font-semibold text-brand-green mt-1">₹{med.price.toFixed(2)}</p>
-              </div>
-              <button className={`px-4 py-2 rounded-lg font-semibold ${med.isAvailable ? 'bg-brand-blue text-white hover:bg-brand-blue-light' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}>
-                {med.isAvailable ? 'Add to Cart' : 'Out of Stock'}
-              </button>
-            </div>
-            <div className="mt-4 pt-4 border-t">
-              <button
-                onClick={() => handleFindSubstitutes(med)}
-                disabled={isFindingSubstitutes === med.id}
-                className="w-full text-sm font-semibold text-brand-blue hover:underline disabled:opacity-50 disabled:cursor-wait"
-              >
-                {isFindingSubstitutes === med.id ? 'Finding Substitutes...' : 'Find Cheaper Substitutes (AI)'}
-              </button>
-              {isFindingSubstitutes === med.id && <div className="text-center p-2 text-gray-500">AI is working its magic...</div>}
-              {error && <div className="text-center p-2 text-red-500">{error}</div>}
-              {substitutes.length > 0 && (
-                <div className="mt-2 space-y-2 bg-blue-50 p-3 rounded-lg">
-                    <h4 className="font-semibold text-sm">AI Suggestions:</h4>
-                    {substitutes.map((sub, index) => (
-                        <div key={index} className="text-sm border-b last:border-b-0 pb-1">
-                            <p className="font-bold">{sub.name} - <span className="text-brand-green font-semibold">₹{sub.price.toFixed(2)}</span></p>
-                            <p className="text-gray-600">{sub.reason}</p>
-                        </div>
-                    ))}
+      {loading && <div className="text-center p-4 text-gray-600">Loading medicines from database...</div>}
+      
+      {fetchError && <div className="text-center p-4 bg-red-100 text-red-700 rounded-lg">{fetchError}</div>}
+
+      {!loading && !fetchError && (
+        <div className="space-y-4">
+          {searchResults.map(med => (
+            <div key={med.id} className="bg-white p-4 rounded-xl shadow-md border transition-shadow hover:shadow-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-bold text-lg">{med.name}</p>
+                  <p className="text-sm text-gray-500">Contains: {med.salt}</p>
+                  <p className="font-semibold text-brand-green mt-1">₹{med.price.toFixed(2)}</p>
                 </div>
-              )}
+                <button className={`px-4 py-2 rounded-lg font-semibold ${med.isAvailable ? 'bg-brand-blue text-white hover:bg-brand-blue-light' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}>
+                  {med.isAvailable ? 'Add to Cart' : 'Out of Stock'}
+                </button>
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <button
+                  onClick={() => handleFindSubstitutes(med)}
+                  disabled={isFindingSubstitutes === med.id}
+                  className="w-full text-sm font-semibold text-brand-blue hover:underline disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {isFindingSubstitutes === med.id ? 'Finding Substitutes...' : 'Find Cheaper Substitutes (AI)'}
+                </button>
+                {isFindingSubstitutes === med.id && <div className="text-center p-2 text-gray-500">AI is working its magic...</div>}
+                {error && <div className="text-center p-2 text-red-500">{error}</div>}
+                {substitutes.length > 0 && (
+                  <div className="mt-2 space-y-2 bg-blue-50 p-3 rounded-lg">
+                      <h4 className="font-semibold text-sm">AI Suggestions:</h4>
+                      {substitutes.map((sub, index) => (
+                          <div key={index} className="text-sm border-b last:border-b-0 pb-1">
+                              <p className="font-bold">{sub.name} - <span className="text-brand-green font-semibold">₹{sub.price.toFixed(2)}</span></p>
+                              <p className="text-gray-600">{sub.reason}</p>
+                          </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-center space-x-2 p-4 text-brand-green">
         <VerifiedIcon />
         <span className="font-semibold">All pharmacies are 100% verified & genuine.</span>

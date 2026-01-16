@@ -1,0 +1,7 @@
+{
+  "name": "MediDici - Your Health Companion",
+  "description": "An online platform to order medicines, consult doctors, store prescriptions, and get health guidance from home using AI and verified local pharmacies.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

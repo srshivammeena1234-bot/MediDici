@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { View } from '../App';
-import { StethoscopeIcon, PillIcon, MapPinIcon, HeartPulseIcon, MessageSquareIcon } from './icons/Icons';
+import { StethoscopeIcon, PillIcon, MapPinIcon, HeartPulseIcon, MessageSquareIcon, HelpCircleIcon } from './icons/Icons';
 
 interface HomeProps {
   setActiveView: (view: View) => void;
@@ -52,9 +52,13 @@ const Home: React.FC<HomeProps> = ({ setActiveView }) => {
           onClick={() => setActiveView('tools')}
           color="bg-red-100 text-red-600"
         />
-         <div className="col-span-2 md:col-span-1 p-4 bg-gray-50 rounded-xl flex items-center justify-center text-center">
-            <p className="text-gray-500">More features coming soon!</p>
-        </div>
+         <FeatureCard
+          title="Contact Us"
+          description="Questions? Get in touch with us"
+          icon={<HelpCircleIcon />}
+          onClick={() => setActiveView('contact')}
+          color="bg-indigo-100 text-indigo-600"
+        />
       </div>
     </div>
   );

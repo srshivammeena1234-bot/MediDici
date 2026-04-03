@@ -1,0 +1,11 @@
+
+[build]
+  # Directory where Netlify will find serverless functions to deploy.
+  functions = "netlify/functions"
+
+# This rewrite rule is essential for SPAs. It ensures that any direct navigation 
+# to a route (e.g., /contact) will still serve the main index.html file.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

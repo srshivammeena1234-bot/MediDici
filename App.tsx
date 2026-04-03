@@ -8,11 +8,12 @@ import NearbyServices from './components/NearbyServices';
 import HealthTools from './components/HealthTools';
 import SymptomChecker from './components/SymptomChecker';
 import Auth from './components/Auth';
+import ContactUs from './components/ContactUs';
 import { StethoscopeIcon, PillIcon, MapPinIcon, HeartPulseIcon, MessageSquareIcon, HomeIcon } from './components/icons/Icons';
 import { supabase } from './services/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 
-export type View = 'home' | 'order' | 'consult' | 'nearby' | 'tools' | 'symptom-checker' | 'auth';
+export type View = 'home' | 'order' | 'consult' | 'nearby' | 'tools' | 'symptom-checker' | 'auth' | 'contact';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -58,6 +59,8 @@ const App: React.FC = () => {
         return <SymptomChecker />;
       case 'auth':
         return <Auth />;
+      case 'contact':
+        return <ContactUs session={session} />;
       case 'home':
       default:
         return <Home setActiveView={setCurrentView} />;
@@ -90,7 +93,11 @@ const App: React.FC = () => {
         </div>
       </nav>
        <footer className="hidden md:block bg-white border-t mt-auto p-4 text-center text-gray-500 text-sm">
-        <p>&copy; 2024 MediDici. All rights reserved. For informational purposes only. Consult a doctor for medical advice.</p>
+        <div className="flex justify-center items-center space-x-4">
+            <p>&copy; 2024 MediDici. All rights reserved.</p>
+            <button onClick={() => setCurrentView('contact')} className="hover:text-brand-blue hover:underline">Contact Us</button>
+            <p>For informational purposes only. Consult a doctor for medical advice.</p>
+        </div>
       </footer>
     </div>
   );
